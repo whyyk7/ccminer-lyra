@@ -36,43 +36,42 @@ extern void cubehash256_cpu_hash_32(int thr_id, uint32_t threads, uint32_t start
 
 extern "C" void lyra2v2_hash(void *state, const void *input)
 {
-	sph_blake256_context      ctx_blake;
-	sph_keccak256_context     ctx_keccak;
-	sph_skein256_context      ctx_skein;
-	sph_bmw256_context        ctx_bmw;
-	sph_cubehash256_context   ctx_cube;
+	sph_blake256_context ctx_blake;
+	sph_cubehash256_context ctx_cubehash;
+	sph_keccak256_context ctx_keccak;
+	sph_skein256_context ctx_skein;
+	sph_bmw256_context ctx_bmw;
 
 	uint32_t hashA[8], hashB[8];
 
 	sph_blake256_init(&ctx_blake);
-	sph_blake256(&ctx_blake, input, 80);
-	sph_blake256_close(&ctx_blake, hashA);
+    sph_blake256(&ctx_blake, input, 80);
+    sph_blake256_close (&ctx_blake, hashA);
 
-	sph_keccak256_init(&ctx_keccak);
-	sph_keccak256(&ctx_keccak, hashA, 32);
-	sph_keccak256_close(&ctx_keccak, hashB);
+    sph_cubehash256_init(&ctx_cubehash);
+    sph_cubehash256(&ctx_cubehash, hashA, 32);
+    sph_cubehash256_close(&ctx_cubehash, hashB);
 
-	sph_cubehash256_init(&ctx_cube);
-	sph_cubehash256(&ctx_cube, hashB, 32);
-	sph_cubehash256_close(&ctx_cube, hashA);
+    sph_keccak256_init(&ctx_keccak);
+    sph_keccak256(&ctx_keccak, hashB, 32);
+    sph_keccak256_close(&ctx_keccak, hashA);
+
+    LYRA2(hashB, 32, hashB, 32, hashA, 32, 1, 8, 8);
+
+    sph_cubehash256_init(&ctx_cubehash);
+    sph_cubehash256(&ctx_cubehash, hashB, 32);
+    sph_cubehash256_close(&ctx_cubehash, hashA);
+
+    sph_bmw256_init(&ctx_bmw);
+    sph_bmw256(&ctx_bmw, hashA, 32);
+    sph_bmw256_close(&ctx_bmw, hashB);
+
+   	sph_skein256_init(&ctx_skein);
+    sph_skein256(&ctx_skein, hashB, 32);
+    sph_skein256_close(&ctx_skein, hashA);
 
 
-	LYRA2(hashB, 32, hashA, 32, hashA, 32, 1, 4, 4);
-
-	sph_skein256_init(&ctx_skein);
-	sph_skein256(&ctx_skein, hashB, 32);
-	sph_skein256_close(&ctx_skein, hashA);
-
-	sph_cubehash256_init(&ctx_cube);
-	sph_cubehash256(&ctx_cube, hashA, 32);
-	sph_cubehash256_close(&ctx_cube, hashB);
-
-
-	sph_bmw256_init(&ctx_bmw);
-	sph_bmw256(&ctx_bmw, hashB, 32);
-	sph_bmw256_close(&ctx_bmw, hashA);
-
-	memcpy(state, hashA, 32);
+   	memcpy(output, hashA, 32);
 }
 
 static bool init[MAX_GPUS] = { 0 };
